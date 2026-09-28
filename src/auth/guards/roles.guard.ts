@@ -13,7 +13,6 @@ export class RolesGuard implements CanActivate {
       [context.getHandler(), context.getClass()],
     );
 
-    // Якщо @Roles() не вказано - доступ дозволено всім залогіненим
     if (!requiredRoles || requiredRoles.length === 0) {
       return true;
     }

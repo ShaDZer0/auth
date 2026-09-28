@@ -6,13 +6,15 @@ import { AuthService } from './auth.service.js';
 import { AuthController } from './auth.controller.js';
 import { JwtStrategy } from './jwt.strategy.js';
 import { UsersModule } from '../users/users.module.js';
+import { MailModule } from '../mail/mail.module.js'
 
 @Module({
   imports: [
     UsersModule,
+    MailModule,
     PassportModule.register({defaultStrategy: 'jwt'}),
     JwtModule.registerAsync({
-      imports: [ConfigModule, UsersModule],
+      imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService): JwtModuleOptions => {
         const expiresIn = configService.get<string>('JWT_EXPIRES_IN') ?? '1h';

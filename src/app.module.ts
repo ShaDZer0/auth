@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { createObserveModule } from '@nestjs/observe';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
@@ -8,10 +9,19 @@ import { DataSource } from 'typeorm';
 import { UsersModule } from './users/users.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { ConfigModule } from '@nestjs/config';
+import { GamesModule } from './games/games.module.js';
+import { join } from 'node:path';
+import { RedisModule } from './redis/redis.module.js';
+import { OnlineModule } from './online/online.module.js';
+import { OrdersModule } from './orders/orders.module.js';
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(),'public'),
+      exclude: ['/api']
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -23,7 +33,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       password: process.env.DB_PASSWORD || '25889435',
       database: process.env.DB_DATABASE || 'auth_db',
       autoLoadEntities: true,
-      synchronize: true,
+      synchronize: false,
     }),
     ObserveModule.forRoot({
       appKey: process.env.OBSERVE_APP_KEY ?? '',
@@ -33,6 +43,10 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     }),
     UsersModule,
     AuthModule,
+    GamesModule,
+    RedisModule,
+    OnlineModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
