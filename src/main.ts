@@ -7,6 +7,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     instrument: ObserveInstrument,
     rawBody: true,
+    logger: ['log', 'error', 'warn', 'debug', 'verbose'],
   });
 
   app.enableCors({ origin: true, credentials: true });

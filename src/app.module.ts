@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { createObserveModule } from '@nestjs/observe';
 import { AppController } from './app.controller.js';
@@ -14,6 +14,8 @@ import { join } from 'node:path';
 import { RedisModule } from './redis/redis.module.js';
 import { OnlineModule } from './online/online.module.js';
 import { OrdersModule } from './orders/orders.module.js';
+import { AppLoggerMiddleware } from './common/middleware/logger.middleware.js';
+import { ScheduleModule } from '@nestjs/schedule';
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
 @Module({
@@ -25,6 +27,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
@@ -34,6 +37,8 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       database: process.env.DB_DATABASE || 'auth_db',
       autoLoadEntities: true,
       synchronize: false,
+
+      logging: true,
     }),
     ObserveModule.forRoot({
       appKey: process.env.OBSERVE_APP_KEY ?? '',
@@ -51,6 +56,8 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {
-  constructor(private dataSource: DataSource) {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(AppLoggerMiddleware).forRoutes('*');
+  }
 }
