@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Game Portal</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+  <div id="authSection" class="card">
+    <div id="tabsHeader" class="tabs">
+      <button type="button" id="tabLoginBtn" class="tab-btn active-login">Вхід</button>
+      <button type="button" id="tabRegisterBtn" class="tab-btn">Реєстрація</button>
+    </div>
+
+    <div id="alertBox" class="alert hidden"></div>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" required />
+      </div>
+      <div class="form-group">
+        <label for="loginPassword">Пароль</label>
+        <input type="password" id="loginPassword" required />
+        <div style="text-align: right; margin-top: 4px;">
+          <button type="button" id="openForgotBtn" style="background: none; border: none; color: #60a5fa; cursor: pointer; font-size: 13px; text-decoration: underline;">
+            Забули пароль?
+          </button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-blue" style="width: 100%; margin-top: 12px;">Увійти</button>
+    </form>
+
+    <div id="forgotPasswordSection" class="hidden" style="margin-top: 16px;">
+      <h3 style="font-size: 16px; margin-bottom: 8px;">Відновлення доступу</h3>
+      <div id="forgotAlert" class="alert hidden"></div>
+
+      <form id="requestCodeForm">
+        <div class="form-group">
+          <label for="forgotEmailInput">Ваш Email</label>
+          <input type="email" id="forgotEmailInput" required />
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 10px;">
+          <button type="submit" class="btn btn-blue" style="flex: 1;">Отримати код</button>
+          <button type="button" id="cancelForgotBtn" class="logout-btn">Назад</button>
+        </div>
+      </form>
+
+      <form id="confirmResetForm" class="hidden" style="margin-top: 12px;">
+        <div class="form-group">
+          <label for="resetCodeInput">Код з листа</label>
+          <input type="text" id="resetCodeInput" required placeholder="6 цифр" />
+        </div>
+        <div class="form-group">
+          <label for="resetNewPassInput">Новий пароль (мін. 6 символів)</label>
+          <input type="password" id="resetNewPassInput" required minlength="6" />
+        </div>
+        <button type="submit" class="btn btn-blue" style="width: 100%; margin-top: 10px;">Встановити новий пароль</button>
+      </form>
+    </div>
+
+    <form id="registerForm" class="hidden">
+      <div class="form-group">
+        <label for="regName">Ім'я</label>
+        <input type="text" id="regName" required />
+      </div>
+      <div class="form-group">
+        <label for="regEmail">Email</label>
+        <input type="email" id="regEmail" required />
+      </div>
+      <div class="form-group">
+        <label for="regPassword">Пароль</label>
+        <input type="password" id="regPassword" required />
+      </div>
+      <button type="submit" class="btn btn-emerald" style="width: 100%; margin-top: 12px;">Створити акаунт</button>
+    </form>
+  </div>
+
+  <div id="gamesListSection" class="card hidden">
+    <div class="header-bar">
+      <div>
+        <h2 style="font-size: 18px; font-weight: 700;">Оберіть гру</h2>
+        <span style="font-size: 12px; color: #94a3b8;">Авторизовано через JWT</span>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" id="openChangePassBtn" class="logout-btn" style="border-color: #3b82f6; color: #60a5fa;">Змінити пароль</button>
+        <button type="button" id="logoutFromListBtn" class="logout-btn">Вийти</button>
+      </div>
+    </div>
+
+    <div id="changePassModal" class="card hidden" style="margin-top: 16px; border: 1px solid #3b82f6;">
+      <h3 style="margin-bottom: 12px; font-size: 16px;">Зміна пароля</h3>
+      <div id="changePassAlert" class="alert hidden"></div>
+      <form id="changePasswordForm">
+        <div class="form-group">
+          <label for="currentPassInput">Поточний пароль</label>
+          <input type="password" id="currentPassInput" required />
+        </div>
+        <div class="form-group">
+          <label for="newPassInput">Новий пароль (мін. 6 символів)</label>
+          <input type="password" id="newPassInput" required minlength="6" />
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 10px;">
+          <button type="submit" class="btn btn-blue" style="flex: 1;">Зберегти новий пароль</button>
+          <button type="button" id="cancelChangePassBtn" class="logout-btn">Скасувати</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="games-grid" style="margin-top: 16px;">
+      <button type="button" class="game-choice-btn" data-game="snake">
+        <strong>Змійка</strong>
+        <span>Керування стрілками або WASD, рахунок зберігається в топ-3</span>
+      </button>
+    </div>
+
+    <div id="shopBlock" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #334155;">
+      <h3 style="font-size: 14px; font-weight: 700; color: #94a3b8; margin: 0 0 8px 0;">Магазин</h3>
+      <div id="shopAlert" class="alert hidden"></div>
+
+      <div class="shop-item">
+        <div class="shop-item-info">
+          <strong id="productName">Завантаження...</strong>
+          <span id="productDesc"></span>
+        </div>
+        <button type="button" id="buyBtn" class="btn btn-emerald" disabled>Купити</button>
+      </div>
+
+      <h4 style="font-size: 13px; font-weight: 700; color: #94a3b8; margin: 16px 0 6px 0;">Мої замовлення</h4>
+      <ul id="ordersList" class="orders-list">
+        <li class="orders-empty">Замовлень поки немає</li>
+      </ul>
+    </div>
+
+    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #334155;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h3 style="font-size: 14px; font-weight: 700; color: #94a3b8; margin: 0;">
+          Гравці онлайн (<span id="onlineCount">0</span>)
+        </h3>
+        <span style="display: inline-block; width: 8px; height: 8px; background: #34d399; border-radius: 50%;"></span>
+      </div>
+      <ul id="onlineUsersList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px;">
+        <li style="color: #64748b; font-size: 13px;">Завантаження списку...</li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="snakeSection" class="card hidden">
+    <div class="header-bar">
+      <div>
+        <h2 style="font-size: 18px; font-weight: 700;">Змійка</h2>
+        <span style="font-size: 12px; color: #94a3b8;">Стрілки або WASD</span>
+      </div>
+      <button type="button" class="logout-btn back-to-list-btn">← До списку ігор</button>
+    </div>
+
+    <div id="snakeStatus" class="status-text">Натисніть "Нова гра", щоб почати</div>
+    <div id="snakeScore" class="status-text" style="margin-top: -12px; font-size: 14px; color: #94a3b8;">Рахунок: 0</div>
+
+    <canvas id="snakeCanvas" width="300" height="300" style="display: block; margin: 0 auto 16px auto; border-radius: 12px; border: 1px solid #334155;"></canvas>
+
+    <button type="button" id="resetSnakeBtn" class="btn btn-blue">Нова гра</button>
+
+    <div style="margin-top: 24px;">
+      <h3 style="font-size: 14px; font-weight: 700; color: #94a3b8; margin-bottom: 8px;">Топ-3 гравців</h3>
+      <ol id="snakeLeaderboard" class="leaderboard-list">
+        <li class="leaderboard-empty">Поки немає результатів</li>
+      </ol>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initSnake } from './games/snake.js';
+
+    const API_URL = '';
+    let socket = null;
+    let gameCatalog = {};
+
+    const authSection = document.getElementById('authSection');
+    const tabsHeader = document.getElementById('tabsHeader');
+    const gamesListSection = document.getElementById('gamesListSection');
+    const snakeSection = document.getElementById('snakeSection');
+
+    const tabLoginBtn = document.getElementById('tabLoginBtn');
+    const tabRegisterBtn = document.getElementById('tabRegisterBtn');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const alertBox = document.getElementById('alertBox');
+    const logoutFromListBtn = document.getElementById('logoutFromListBtn');
+
+    const openChangePassBtn = document.getElementById('openChangePassBtn');
+    const cancelChangePassBtn = document.getElementById('cancelChangePassBtn');
+    const changePassModal = document.getElementById('changePassModal');
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    const changePassAlert = document.getElementById('changePassAlert');
+
+    const openForgotBtn = document.getElementById('openForgotBtn');
+    const cancelForgotBtn = document.getElementById('cancelForgotBtn');
+    const forgotSection = document.getElementById('forgotPasswordSection');
+    const forgotAlert = document.getElementById('forgotAlert');
+    const requestCodeForm = document.getElementById('requestCodeForm');
+    const confirmResetForm = document.getElementById('confirmResetForm');
+    const forgotEmailInput = document.getElementById('forgotEmailInput');
+    const resetCodeInput = document.getElementById('resetCodeInput');
+    const resetNewPassInput = document.getElementById('resetNewPassInput');
+
+    const GAMES = {
+      'snake': {
+        catalogName: 'Змійка',
+        sectionId: 'snakeSection',
+        init: () => initSnake((score) => handleGameOver('snake', score)),
+      },
+    };
+
+    function showAlert(msg, isSuccess = false) {
+      alertBox.textContent = msg;
+      alertBox.className = isSuccess ? 'alert alert-success' : 'alert alert-error';
+      alertBox.classList.remove('hidden');
+    }
+
+    function hideAlert() {
+      alertBox.className = 'alert hidden';
+    }
+
+    tabLoginBtn.onclick = () => {
+      loginForm.classList.remove('hidden');
+      registerForm.classList.add('hidden');
+      forgotSection.classList.add('hidden');
+      tabLoginBtn.className = 'tab-btn active-login';
+      tabRegisterBtn.className = 'tab-btn';
+      hideAlert();
+    };
+
+    tabRegisterBtn.onclick = () => {
+      registerForm.classList.remove('hidden');
+      loginForm.classList.add('hidden');
+      forgotSection.classList.add('hidden');
+      tabRegisterBtn.className = 'tab-btn active-reg';
+      tabLoginBtn.className = 'tab-btn';
+      hideAlert();
+    };
+
+    openForgotBtn.onclick = () => {
+      loginForm.classList.add('hidden');
+      registerForm.classList.add('hidden');
+      tabsHeader.classList.add('hidden');
+      hideAlert();
+
+      forgotSection.classList.remove('hidden');
+      requestCodeForm.classList.remove('hidden');
+      confirmResetForm.classList.add('hidden');
+      forgotAlert.classList.add('hidden');
+    };
+
+    cancelForgotBtn.onclick = () => {
+      forgotSection.classList.add('hidden');
+      tabsHeader.classList.remove('hidden');
+      loginForm.classList.remove('hidden');
+      forgotAlert.classList.add('hidden');
+    };
+
+    let resendTimer = null;
+
+function startCooldownTimer(seconds) {
+  const submitBtn = requestCodeForm.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  let remaining = seconds;
+
+  submitBtn.textContent = `Повторити через (${remaining}с)`;
+
+  clearInterval(resendTimer);
+  resendTimer = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      clearInterval(resendTimer);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Отримати код';
+    } else {
+      submitBtn.textContent = `Повторити через (${remaining}с)`;
+    }
+  }, 1000);
+}
+
+requestCodeForm.onsubmit = async (e) => {
+  e.preventDefault();
+  const email = forgotEmailInput.value.trim();
+
+  try {
+    const res = await fetch(`${API_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Помилка надсилання');
+
+    forgotAlert.textContent = data.message;
+    forgotAlert.className = 'alert alert-success';
+    forgotAlert.classList.remove('hidden');
+    startCooldownTimer(60);
+    requestCodeForm.classList.add('hidden');
+    confirmResetForm.classList.remove('hidden');
+  } catch (err) {
+    forgotAlert.textContent = err.message;
+    forgotAlert.className = 'alert alert-error';
+    forgotAlert.classList.remove('hidden');
+  }
+};
+    confirmResetForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const email = forgotEmailInput.value.trim();
+      const resetCode = resetCodeInput.value.trim();
+      const newPassword = resetNewPassInput.value.trim();
+
+      try {
+        const res = await fetch(`${API_URL}/auth/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, resetCode, newPassword }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Помилка зміни пароля');
+
+        forgotAlert.textContent = 'Пароль успішно оновлено! Увійдіть з новим паролем.';
+        forgotAlert.className = 'alert alert-success';
+        forgotAlert.classList.remove('hidden');
+
+        setTimeout(() => {
+          cancelForgotBtn.click();
+        }, 2000);
+      } catch (err) {
+        forgotAlert.textContent = err.message;
+        forgotAlert.className = 'alert alert-error';
+        forgotAlert.classList.remove('hidden');
+      }
+    };
+
+    openChangePassBtn.onclick = () => {
+      changePassModal.classList.remove('hidden');
+      changePassAlert.classList.add('hidden');
+      changePasswordForm.reset();
+    };
+
+    cancelChangePassBtn.onclick = () => {
+      changePassModal.classList.add('hidden');
+    };
+
+    changePasswordForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const currentPassword = document.getElementById('currentPassInput').value;
+      const newPassword = document.getElementById('newPassInput').value;
+
+      try {
+        await fetchAuth('/users/change-password', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword, newPassword }),
+        });
+
+        changePassAlert.textContent = 'Пароль успішно оновлено!';
+        changePassAlert.className = 'alert alert-success';
+        changePassAlert.classList.remove('hidden');
+        changePasswordForm.reset();
+
+        setTimeout(() => {
+          changePassModal.classList.add('hidden');
+        }, 2000);
+      } catch (err) {
+        changePassAlert.textContent = err.message;
+        changePassAlert.className = 'alert alert-error';
+        changePassAlert.classList.remove('hidden');
+      }
+    };
+
+    async function fetchAuth(path, options = {}) {
+      const token = localStorage.getItem('jwt_token');
+      const res = await fetch(`${API_URL}${path}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...options.headers,
+        },
+      });
+
+      if (res.status === 401) {
+        disconnectOnlineSocket();
+        localStorage.removeItem('jwt_token');
+        checkAuth();
+        throw new Error('Сесія закінчилась, увійдіть знову');
+      }
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(Array.isArray(data?.message) ? data.message.join(', ') : (data?.message || `HTTP ${res.status}`));
+      }
+      return data;
+    }
+
+    function connectOnlineSocket(token) {
+      if (typeof io === 'undefined') return;
+      if (socket) socket.disconnect();
+
+      socket = io(window.location.origin, {
+        auth: { token },
+      });
+
+      socket.on('onlineUsersUpdated', (users) => {
+        const listEl = document.getElementById('onlineUsersList');
+        const countEl = document.getElementById('onlineCount');
+        if (!listEl || !countEl) return;
+
+        countEl.textContent = users.length;
+
+        if (!users || users.length === 0) {
+          listEl.innerHTML = '<li style="color: #64748b; font-size: 13px;">Нікого немає онлайн</li>';
+          return;
+        }
+
+        listEl.innerHTML = users
+          .map(
+            (u) => `
+            <li style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #e2e8f0; background: #0f172a; padding: 6px 10px; border-radius: 6px;">
+              <span style="width: 6px; height: 6px; background: #34d399; border-radius: 50%;"></span>
+              <span>${u.name}</span>
+            </li>
+          `
+          )
+          .join('');
+      });
+    }
+
+    function disconnectOnlineSocket() {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+    }
+
+    const shopAlert = document.getElementById('shopAlert');
+    const buyBtn = document.getElementById('buyBtn');
+    const ORDER_STATUS_LABELS = {
+      pending: 'Очікує оплати',
+      paid: 'Оплачено',
+      expired: 'Не оплачено',
+    };
+    let shopProduct = null;
+
+    function formatMoney(amountInCents, currency) {
+      return (amountInCents / 100).toLocaleString('uk-UA', {
+        style: 'currency',
+        currency: currency.toUpperCase(),
+      });
+    }
+
+    function showShopAlert(msg, isSuccess = false) {
+      shopAlert.textContent = msg;
+      shopAlert.className = isSuccess ? 'alert alert-success' : 'alert alert-error';
+    }
+
+    function renderOrders(orders) {
+      const listEl = document.getElementById('ordersList');
+      if (!orders.length) {
+        listEl.innerHTML = '<li class="orders-empty">Замовлень поки немає</li>';
+        return;
+      }
+      listEl.innerHTML = orders
+        .map((o) => `
+          <li>
+            <span>#${o.id} · ${o.productName} · ${formatMoney(o.amount, o.currency)}</span>
+            <span class="order-status order-status-${o.status}">${ORDER_STATUS_LABELS[o.status] || o.status}</span>
+          </li>
+        `)
+        .join('');
+    }
+
+    async function refreshOrders() {
+      const orders = await fetchAuth('/orders/me');
+      renderOrders(orders);
+      return orders;
+    }
+
+    async function pollUntilPaid(attempts = 8) {
+      for (let i = 0; i < attempts; i++) {
+        const orders = await refreshOrders();
+        if (!orders.some((o) => o.status === 'pending')) return;
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    }
+
+    async function loadShop() {
+      try {
+        shopProduct = await fetchAuth('/orders/product');
+        document.getElementById('productName').textContent = shopProduct.name;
+        document.getElementById('productDesc').textContent = shopProduct.description;
+        buyBtn.textContent = `Купити — ${formatMoney(shopProduct.amount, shopProduct.currency)}`;
+        buyBtn.disabled = false;
+        await refreshOrders();
+      } catch (err) {
+        console.warn('Не вдалося завантажити магазин:', err);
+        return;
+      }
+
+      const paymentResult = new URLSearchParams(window.location.search).get('payment');
+      if (paymentResult) {
+        history.replaceState(null, '', window.location.pathname);
+        if (paymentResult === 'success') {
+          showShopAlert('Дякуємо! Перевіряємо оплату...', true);
+          await pollUntilPaid();
+          showShopAlert('Оплату отримано, замовлення оновлено.', true);
+        } else {
+          showShopAlert('Оплату скасовано.');
+        }
+      }
+    }
+
+    buyBtn.onclick = async () => {
+      buyBtn.disabled = true;
+      shopAlert.className = 'alert hidden';
+      try {
+        const { url } = await fetchAuth('/orders/checkout', { method: 'POST' });
+        window.location.href = url;
+      } catch (err) {
+        showShopAlert(err.message);
+        buyBtn.disabled = false;
+      }
+    };
+
+    async function loadGameCatalog() {
+      try {
+        const games = await fetchAuth('/games');
+        gameCatalog = Object.fromEntries(games.map((g) => [g.name, g.id]));
+      } catch {
+        gameCatalog = {};
+      }
+    }
+
+    async function handleGameOver(gameKey, score) {
+      const config = GAMES[gameKey];
+      let gameId = gameCatalog[config.catalogName];
+      if (!gameId) {
+        const firstKey = Object.keys(gameCatalog)[0];
+        gameId = gameCatalog[firstKey] || 1;
+      }
+
+      try {
+        await fetchAuth('/games/track-game', {
+          method: 'POST',
+          body: JSON.stringify({ gameId: Number(gameId), score: Number(score) }),
+        });
+        await renderLeaderboard(gameKey);
+      } catch (err) {
+        console.warn('Не вдалося зберегти результат:', err.message);
+      }
+    }
+
+    async function renderLeaderboard(gameKey) {
+      const config = GAMES[gameKey];
+      let gameId = gameCatalog[config.catalogName];
+      if (!gameId) {
+        const firstKey = Object.keys(gameCatalog)[0];
+        gameId = gameCatalog[firstKey] || 1;
+      }
+
+      const listEl = document.querySelector(`#${config.sectionId} .leaderboard-list`);
+      if (!listEl) return;
+
+      try {
+        const top = await fetchAuth(`/games/${gameId}/leaderboard`);
+        listEl.innerHTML = (top && top.length)
+          ? top.map((entry, idx) => `
+              <li style="display: flex; justify-content: space-between; padding: 4px 0;">
+                <span><strong>${idx + 1}. ${entry.name}</strong></span>
+                <span style="color: #60a5fa; font-weight: bold;">${entry.score}</span>
+              </li>
+            `).join('')
+          : '<li class="leaderboard-empty">Поки немає результатів</li>';
+      } catch {
+        listEl.innerHTML = '<li class="leaderboard-empty">Не вдалося завантажити лідерборд</li>';
+      }
+    }
+
+    function hideAllGameSections() {
+      Object.values(GAMES).forEach((config) => {
+        document.getElementById(config.sectionId)?.classList.add('hidden');
+      });
+    }
+
+    function showGamesList() {
+      hideAllGameSections();
+      gamesListSection.classList.remove('hidden');
+    }
+
+    registerForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('regName').value;
+      const email = document.getElementById('regEmail').value;
+      const password = document.getElementById('regPassword').value;
+      try {
+        const res = await fetch(`${API_URL}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(Array.isArray(data.message) ? data.message.join(', ') : (data.message || 'Помилка реєстрації'));
+        }
+        const token = data.accessToken || data.token;
+        if (token) {
+          localStorage.setItem('jwt_token', token);
+          checkAuth();
+        } else {
+          showAlert('Успішно зареєстровано! Будь ласка, увійдіть.', true);
+          tabLoginBtn.click();
+        }
+      } catch (err) {
+        showAlert(err.message);
+      }
+    };
+
+    loginForm.onsubmit = async (e) => {
+      e.preventDefault();
+      hideAlert();
+
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      try {
+        const res = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          const errMsg = Array.isArray(data?.message)
+            ? data.message.join(', ')
+            : (data?.message || 'Невірний логін або пароль');
+          throw new Error(errMsg);
+        }
+
+        const token = data?.accessToken || data?.token || data?.access_token || (typeof data === 'string' ? data : null);
+
+        if (!token) {
+          throw new Error('Сервер не повернув JWT токен');
+        }
+
+        localStorage.setItem('jwt_token', token);
+        await checkAuth();
+      } catch (err) {
+        showAlert(err.message);
+        console.error('Помилка авторизації:', err);
+      }
+    };
+
+    logoutFromListBtn.onclick = () => {
+      disconnectOnlineSocket();
+      localStorage.removeItem('jwt_token');
+      checkAuth();
+    };
+
+    document.querySelectorAll('.back-to-list-btn').forEach((btn) => {
+      btn.addEventListener('click', showGamesList);
+    });
+
+    document.querySelectorAll('.game-choice-btn').forEach((card) => {
+      card.addEventListener('click', async () => {
+        const gameKey = card.getAttribute('data-game');
+        const config = GAMES[gameKey];
+        if (!config) return;
+
+        gamesListSection.classList.add('hidden');
+        hideAllGameSections();
+        document.getElementById(config.sectionId).classList.remove('hidden');
+
+        config.init();
+        await renderLeaderboard(gameKey);
+      });
+    });
+
+    async function checkAuth() {
+      const token = localStorage.getItem('jwt_token');
+      const isValid = Boolean(token && token !== 'undefined' && token !== 'null');
+
+      if (isValid) {
+        authSection.classList.add('hidden');
+        hideAllGameSections();
+        gamesListSection.classList.remove('hidden');
+
+        try {
+          connectOnlineSocket(token);
+        } catch (e) {
+          console.warn('Не вдалося ініціалізувати WebSocket:', e);
+        }
+
+        try {
+          await loadGameCatalog();
+        } catch (e) {
+          console.warn('Не вдалося завантажити каталог ігор:', e);
+        }
+
+        await loadShop();
+      } else {
+        disconnectOnlineSocket();
+        localStorage.removeItem('jwt_token');
+        authSection.classList.remove('hidden');
+        gamesListSection.classList.add('hidden');
+        hideAllGameSections();
+      }
+    }
+
+    checkAuth();
+  </script>
+</body>
+</html>
